@@ -3,7 +3,7 @@
  * Temporal analysis of the sales and transactions
  */
 
-function temporal(orders, codes) {
+function render(orders, codes) {
 
     //nest data by Zip and year/Month to make it easier to identify max and min value
     var dateParse = d3.timeParse("%m-%Y");
@@ -99,8 +99,8 @@ function temporal(orders, codes) {
     }
 
     // create svg and attributes for temporal dot chart
-    var width = 850,
-        height = 600,
+    var width = 1400,
+        height = 450,
         padding = 100;
 
     var svg = d3.select("#temporal")
@@ -207,7 +207,7 @@ function temporal(orders, codes) {
     /*  ************** Multi-line chart for states **************** */
 
     //nest data by states
-    var nestedStates =  d3.nest()
+    var nestedStates = d3.nest()
         .key(function (d) {
             return d['Billing Province'];
         })
@@ -232,17 +232,17 @@ function temporal(orders, codes) {
 
     //create svg to draw multi-line chart
 
-    var margin = {top: 20, right: 80, bottom: 30, left: 50},
-        width_ML = 800 - margin.left - margin.right,
-        height_ML = 400 - margin.top - margin.bottom;
+    var margin = {top: 20, right: 30, bottom: 20, left: 70},
+        width_ML = 1200 - margin.left - margin.right,
+        height_ML = 300 - margin.top - margin.bottom;
 
     var svgML = d3.select("#multiline")
         .append("svg")
         .attr("width", width_ML + margin.left + margin.right)
         .attr("height", height_ML + margin.top + margin.bottom);
 
-     var g  = svgML.append("g")
-             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    var g = svgML.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     //scale for x and y axis
     var x_ML = d3.scaleTime().range([0, width_ML]),
@@ -250,12 +250,26 @@ function temporal(orders, codes) {
 
     //path generator
     var line = d3.line()
-        .x(function(d) { return x_ML(dateParse(d.key)); })
-        .y(function(d) { return y_ML(d.value.sales); });
+        .x(function (d) {
+            return x_ML(dateParse(d.key));
+        })
+        .y(function (d) {
+            return y_ML(d.value.sales);
+        });
 
-    x_ML.domain(d3.extent(orders,function(d){return d.date;}));
-    y_ML.domain([d3.min(nestedStates, function(c) { return d3.min(c.values, function(d) { return d.value.sales; }); }),
-        d3.max(nestedStates, function(c) { return d3.max(c.values, function(d) { return d.value.sales; }); })]);
+    x_ML.domain(d3.extent(orders, function (d) {
+        return d.date;
+    }));
+    y_ML.domain([d3.min(nestedStates, function (c) {
+        return d3.min(c.values, function (d) {
+            return d.value.sales;
+        });
+    }),
+        d3.max(nestedStates, function (c) {
+            return d3.max(c.values, function (d) {
+                return d.value.sales;
+            });
+        })]);
 
     g.append("g")
         .attr("class", "axis axis--x")
@@ -279,13 +293,13 @@ function temporal(orders, codes) {
 
     city.append("path")
         .attr("class", "line")
-        .attr("d", function(d) { console.log(d.values); return line(d.values); })
-        .style("stroke", function(d) { return colorScale(d.key); });
-
-
-
-
-
+        .attr("d", function (d) {
+            console.log(d.values);
+            return line(d.values);
+        })
+        .style("stroke", function (d) {
+            return colorScale(d.key);
+        });
 
 
     //action on state filter
