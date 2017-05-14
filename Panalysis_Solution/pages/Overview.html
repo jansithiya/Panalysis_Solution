@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title> eShop Performance Dashboard and Visual Analysis </title>
+    <link href="../css/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="../css/custom.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand"> eShop Performance Dashboard and Visual Analysis</a>
+        </div>
+        <ul class="nav navbar-nav navbar-right">
+            <li class="active"><a href="#" ><span class="glyphicon glyphicon-signal"></span> Overview</a></li>
+            <li><a href="temporal.html"><span class="glyphicon glyphicon-calendar"></span> Temporal Analysis</a></li>
+        </ul>
+    </div>
+    </div>
+</nav>
+<div class="row" id="controls">
+    <div class="col col-lg-1">
+        <label for="yearSelector" class="pclabel"> Year</label>
+        <select class="form-control dropdown pcControl" id="yearSelector">
+            <option value="ALL">ALL</option>
+        </select>
+    </div>
+
+    <div class="col col-lg-1">
+        <label for="monthSelector" class="pclabel"> Month </label>
+        <select class="form-control dropdown pcControl" id="monthSelector">
+            <option value="ALL">ALL</option>
+        </select>
+    </div>
+
+    <div class="col col-lg-2">
+        <label for="Measure" class="pclabel"> Measure </label>
+        <select class="form-control dropdown pcControl" id="Measure">
+            <option value="sales">Sales</option>
+            <option value="transactions">Transactions</option>
+            <option value="shippingTotal">Total Shipping</option>
+        </select>
+    </div>
+    <div class="col col-lg-3 pcControl" id="mapLegend"></div>
+</div>
+<div class="row">
+    <div class="col col-lg-6">
+        <div id="map"></div>
+        <div id="stateBar"></div>
+    </div>
+    <div class="col col-lg-6">
+        <div id="title"></div>
+        <div id="treeMap"></div>
+        <div id="bubble"></div>
+    </div>
+</div>
+<script src="../js/vendor/jquery-3.2.1.min.js"></script>
+<script src="../js/vendor/underscore-min.js"></script>
+<script src="../js/vendor/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+<script src="../js/vendor/topojson.v2.min.js"></script>
+
+<script src="../js/data.js"></script>
+<script src="../js/overview.js"></script>
+</body>
+</html>

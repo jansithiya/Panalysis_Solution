@@ -42,6 +42,16 @@ function render(orders, codes) {
         })
     });
 
+    var tooltip = d3.select("body")
+        .append("div")
+        .attr("id", "tooltip")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden");
+
+    var numberFormat = d3.format('.0f');
+
+
     //new array to store all relevant orders info to be used for data when drawing
     var temporalData = [];
     nested_orders.forEach(function (d) {
@@ -177,6 +187,7 @@ function render(orders, codes) {
 
         var measureSelected = document.getElementById("Measure");
 
+
         var circleData = svg.selectAll(".circles")
             .data(temporalData, function (d) {
                 return d.id || (d.id = ++i);
@@ -196,6 +207,16 @@ function render(orders, codes) {
             })
             .attr("fill", function (d) {
                 return colorScale(d.province);
+            })
+            .on("mouseover", function (d) {
+                return tooltip.style("visibility", "visible").html("<b>" + "Zip:  " + "</b>" + d.postcode + "<br/>" + "<b>" + measureSelected.value + ": "
+                    + "</b>" + numberFormat(+d[measureSelected.value]) + "<br/>" + "<b>" + "City: " + d.city);
+            })
+            .on("mousemove", function (d) {
+                return tooltip.style("top", (event.pageY - 10) + "px").style("left", (event.pageX + 10) + "px");
+            })
+            .on("mouseout", function (d) {
+                return tooltip.style("visibility", "hidden");
             });
 
         var circleUpdate = circleEnter.merge(circleData);
@@ -205,36 +226,50 @@ function render(orders, codes) {
 
 
     /*  ************** Multi-line chart for states **************** */
+    var nestedStates;
+    dataFilter();
 
-    //nest data by states
-    var nestedStates = d3.nest()
-        .key(function (d) {
-            return d['Billing Province'];
-        })
-        .key(function (d) {
-            return (d.MonthYear)
-        })
-        .rollup(function (order) {
-            return {
-                "transactions": order.length,
-                "sales": d3.sum(order, function (d) {
-                    return d.Subtotal;
-                }),
-                "shippingTotal": d3.sum(order, function (d) {
-                    return d.Shipping;
-                }),
-                "shippingMedian": d3.median(order, function (d) {
-                    return d.Shipping;
-                })
-            }
-        })
-        .entries(orders);
+    function dataFilter() {
+
+        var stateSelected = document.getElementById("stateSelector").value;
+
+        if (stateSelected == "ALL") {
+            var nestData = orders;
+        }
+        else {
+            nestData = orders.filter(function (d) {
+                return d['Billing Province'] === stateSelected;
+            });
+        }
+        nestedStates = d3.nest()
+            .key(function (d) {
+                return d['Billing Province'];
+            })
+            .key(function (d) {
+                return (d.MonthYear)
+            })
+            .rollup(function (order) {
+                return {
+                    "transactions": order.length,
+                    "sales": d3.sum(order, function (d) {
+                        return d.Subtotal;
+                    }),
+                    "shippingTotal": d3.sum(order, function (d) {
+                        return d.Shipping;
+                    }),
+                    "shippingMedian": d3.median(order, function (d) {
+                        return d.Shipping;
+                    })
+                }
+            })
+            .entries(nestData);
+    }
 
     //create svg to draw multi-line chart
 
-    var margin = {top: 20, right: 30, bottom: 20, left: 70},
+    var margin = {top: 40, right: 30, bottom: 20, left: 70},
         width_ML = 1200 - margin.left - margin.right,
-        height_ML = 300 - margin.top - margin.bottom;
+        height_ML = 250 - margin.top - margin.bottom;
 
     var svgML = d3.select("#multiline")
         .append("svg")
@@ -248,26 +283,23 @@ function render(orders, codes) {
     var x_ML = d3.scaleTime().range([0, width_ML]),
         y_ML = d3.scaleLinear().range([height_ML, 0]);
 
-    //path generator
-    var line = d3.line()
-        .x(function (d) {
-            return x_ML(dateParse(d.key));
-        })
-        .y(function (d) {
-            return y_ML(d.value.sales);
-        });
+    var measureTitle = document.getElementById("Measure").value;
+
+    g.append("text")
+        .attr("transform", "translate(" + 100 + "," + (-10) + ")")
+        .text("Temporal Data Visualization by State & Zip Code ");
 
     x_ML.domain(d3.extent(orders, function (d) {
         return d.date;
     }));
     y_ML.domain([d3.min(nestedStates, function (c) {
         return d3.min(c.values, function (d) {
-            return d.value.sales;
+            return d.value[measureTitle];
         });
     }),
         d3.max(nestedStates, function (c) {
             return d3.max(c.values, function (d) {
-                return d.value.sales;
+                return d.value[measureTitle];
             });
         })]);
 
@@ -277,36 +309,71 @@ function render(orders, codes) {
         .call(d3.axisBottom(x_ML).tickFormat(d3.timeFormat("%b-%y")));
 
     g.append("g")
-        .attr("class", "axis axis--y")
+        .attr("class", "axisY")
         .call(d3.axisLeft(y_ML))
         .append("text")
         .attr("transform", "rotate(-90)")
         .attr("y", 6)
         .attr("dy", "0.71em")
         .attr("fill", "#000")
-        .text("Temperature, ºF");
+        .text("Measure");
 
-    var city = g.selectAll(".states")
-        .data(nestedStates)
-        .enter().append("g")
-        .attr("class", "states");
+    redrawLine(nestedStates);
 
-    city.append("path")
-        .attr("class", "line")
-        .attr("d", function (d) {
-            console.log(d.values);
-            return line(d.values);
-        })
-        .style("stroke", function (d) {
-            return colorScale(d.key);
-        });
+    function redrawLine(nestedStates) {
 
+        var measureTitle = document.getElementById("Measure").value;
+        //path generator
+        var line = d3.line()
+            .x(function (d) {
+                return x_ML(dateParse(d.key));
+            })
+            .y(function (d) {
+                return y_ML(d.value[measureTitle]);
+            });
+
+        x_ML.domain(d3.extent(orders, function (d) {
+            return d.date;
+        }));
+        y_ML.domain([d3.min(nestedStates, function (c) {
+            return d3.min(c.values, function (d) {
+                return d.value[measureTitle];
+            });
+        }),
+            d3.max(nestedStates, function (c) {
+                return d3.max(c.values, function (d) {
+                    return d.value[measureTitle];
+                });
+            })]);
+
+
+        var city = g.selectAll(".states")
+            .data(nestedStates, function (d) {
+                return d.ids || (d.ids = ++i);
+            });
+
+        var cityEnter = city.enter().append("g")
+            .attr("class", "states")
+            .append("path")
+            .attr("class", "line")
+            .attr("d", function (d) {
+                console.log(d.values);
+                return line(d.values);
+            })
+            .style("stroke", function (d) {
+                return colorScale(d.key);
+            });
+
+        var cityUpdate = cityEnter.merge(city);
+        var cityExit = city.exit().remove();
+
+    }
 
     //action on state filter
     var stateFilter = d3.select("#stateSelector").on("change", function () {
 
         var stateSelected = this.value;
-
+        dataFilter();
         if (stateSelected == "ALL") {
             var filteredData = temporalData;
         }
@@ -315,11 +382,9 @@ function render(orders, codes) {
                 return d.province === stateSelected;
             });
         }
-
         var measureSelected = document.getElementById("Measure");
 
         //update Y axis domain
-
         y.domain([0, d3.max(filteredData, function (d) {
             return +d[measureSelected.value];
         })]);
@@ -329,6 +394,25 @@ function render(orders, codes) {
             .call(d3.axisLeft(y));
 
         redrawCircle(filteredData);
+
+        var measureTitle = document.getElementById("Measure").value;
+
+        y_ML.domain([d3.min(nestedStates, function (c) {
+            return d3.min(c.values, function (d) {
+                return d.value[measureTitle];
+            });
+        }),
+            d3.max(nestedStates, function (c) {
+                return d3.max(c.values, function (d) {
+                    return d.value[measureTitle];
+                });
+            })]);
+
+        d3.select(".axisY")
+            .transition()
+            .call(d3.axisLeft(y_ML));
+
+        redrawLine(nestedStates);
 
     });
 
@@ -348,6 +432,36 @@ function render(orders, codes) {
             .transition()
             .attr("cy", function (d) {
                 return y(+d[measureSelected.value])
+            });
+
+        var measureTitle = document.getElementById("Measure").value;
+
+        y_ML.domain([d3.min(nestedStates, function (c) {
+            return d3.min(c.values, function (d) {
+                return d.value[measureTitle];
+            });
+        }),
+            d3.max(nestedStates, function (c) {
+                return d3.max(c.values, function (d) {
+                    return d.value[measureTitle];
+                });
+            })]);
+
+        line = d3.line()
+            .x(function (d) {
+                return x_ML(dateParse(d.key));
+            })
+            .y(function (d) {
+                return y_ML(d.value[measureTitle]);
+            });
+
+        d3.select(".axisY")
+            .transition()
+            .call(d3.axisLeft(y_ML));
+
+        d3.selectAll(".states path")
+            .attr("d", function (d) {
+                return line(d.values);
             })
 
     });
