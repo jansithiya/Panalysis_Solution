@@ -1,7 +1,3 @@
-/**
- * Author: Jansi Thiyagarajan
- *
- */
 var centered;
 function render(orders, codes, geoJson) {
 
@@ -240,30 +236,22 @@ function render(orders, codes, geoJson) {
         .domain(measureRange)
         .rangeRound([600, 860]);
 
-    var color = d3.scaleThreshold()
-        .domain(d3.range(measureRange))
-        .range(d3.schemeBlues[9]);
+    var measureMin = d3.min(measureZip, function (d) {
+        return +d[measureSelected];
+    });
+    var measureMax = d3.max(measureZip, function (d) {
+        return +d[measureSelected];
+    });
+    var GnBu = ["#ffffd9", "#edf8b1", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#253494", "#081d58"];
+    var RdBu = ["#b2182b", "#d6604d", "#f4a582", "#fddbc7", "#f7f7f7", "#d1e5f0", "#92c5de", "#4393c3", "#2166ac"];
 
+    var color = d3.scaleThreshold()
+        .domain([measureMin, measureMax / 9, measureMax / 8, measureMax / 7, measureMax / 6, measureMax / 5, measureMax / 4, measureMax / 3, measureMax / 2, measureMax])
+        .range(GnBu);
 
     var g = svg.append("g")
         .attr("class", "key")
         .attr("transform", "translate(0,40)");
-
-    var legend = d3.select("#mapLegend")
-        .append("svg")
-        .attr("width", 200)
-        .attr("height", 200)
-        .attr("transform", "translate(0,40)");
-
-    legend.selectAll("rect")
-        .data(color.range().map(function (d) {
-            d = color.invertExtent(d);
-            if (d[0] == null) d[0] = x.domain()[0];
-            if (d[1] == null) d[1] = x.domain()[1];
-            return d;
-        }))
-        .enter().append("rect");
-
 
     var projection = d3.geoMercator()
         .center([0, -27])
@@ -281,11 +269,12 @@ function render(orders, codes, geoJson) {
         .data(geoData)
         .enter().append("path")
         .attr("d", path)
-        .style("fill", function (d) { if(measureById[d.zip]) {
-            return color(measureById[d.zip]);
-        }else{
-            return "#bdbdbd";
-        }
+        .style("fill", function (d) {
+            if (measureById[d.zip]) {
+                return color(measureById[d.zip]);
+            } else {
+                return "#bdbdbd";
+            }
         })
         .on("click", clicked)
         .on("mouseover", function (d) {
@@ -700,20 +689,29 @@ function render(orders, codes, geoJson) {
             measureById[d.id] = +d[measureSelected];
         });
 
+        console.log(measureById)
+
         measureRange = d3.extent(measureZip, function (d) {
             return +d[measureSelected];
         });
 
+        measureMin = d3.min(measureZip, function (d) {
+            return +d[measureSelected];
+        });
+        measureMax = d3.max(measureZip, function (d) {
+            return +d[measureSelected];
+        });
+
+
+        color.domain([measureMin, measureMax / 9, measureMax / 8, measureMax / 7, measureMax / 6, measureMax / 5, measureMax / 4, measureMax / 3, measureMax / 2, measureMax])
+
         d3.selectAll(".counties path")
             .transition()
-            .attr("fill", function (d) {
-                if (d.id.startsWith("POA0")) {
-                    var code = d.id.slice(4);
-                    return color(measureById[code]);
-                }
-                else {
-                    code = d.id.slice(3);
-                    return color(measureById[code]);
+            .style("fill", function (d) {
+                if (measureById[d.zip]) {
+                    return color(measureById[d.zip]);
+                } else {
+                    return "#bdbdbd";
                 }
             });
 
